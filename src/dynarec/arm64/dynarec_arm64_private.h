@@ -118,6 +118,7 @@ typedef struct dynarec_arm_s {
     uint8_t             doublepush;
     uint8_t             doublepop;
     uint8_t             always_test;
+    uint8_t             nzvc_valid;
 } dynarec_arm_t;
 
 void add_next(dynarec_arm_t *dyn, uintptr_t addr);
