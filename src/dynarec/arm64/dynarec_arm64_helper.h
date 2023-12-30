@@ -1547,6 +1547,80 @@ uintptr_t dynarec64_F30F(dynarec_arm_t* dyn, uintptr_t addr, uintptr_t ip, int n
             TSTw_mask(x1, 0b010101, 0), cNE, cEQ, X_SF | X_OF | X_ZF) \
         break
 
+#define GOCOND_FAST(B, T1, T2)                                            \
+    case B + 0x0:                                                         \
+        INST_NAME(T1 "O " T2);                                            \
+        GO(TSTw_mask(xFlags, 0b010101, 0), cEQ, cNE, X_OF)                \
+        break;                                                            \
+    case B + 0x1:                                                         \
+        INST_NAME(T1 "NO " T2);                                           \
+        GO(TSTw_mask(xFlags, 0b010101, 0), cNE, cEQ, X_OF)                \
+        break;                                                            \
+    case B + 0x2:                                                         \
+        INST_NAME(T1 "C " T2);                                            \
+        GO(TSTw_mask(xFlags, 0, 0), cEQ, cNE, X_CF)                       \
+        break;                                                            \
+    case B + 0x3:                                                         \
+        INST_NAME(T1 "NC " T2);                                           \
+        GO(TSTw_mask(xFlags, 0, 0), cNE, cEQ, X_CF)                       \
+        break;                                                            \
+    case B + 0x4:                                                         \
+        INST_NAME(T1 "Z " T2);                                            \
+        GO_FAST(cEQ, TSTw_mask(xFlags, 0b011010, 0), cEQ, cNE, X_ZF)      \
+        break;                                                            \
+    case B + 0x5:                                                         \
+        INST_NAME(T1 "NZ " T2);                                           \
+        GO_FAST(cNE, TSTw_mask(xFlags, 0b011010, 0), cNE, cEQ, X_ZF)      \
+        break;                                                            \
+    case B + 0x6:                                                         \
+        INST_NAME(T1 "BE " T2);                                           \
+        GO(MOV32w(x1, (1 << F_CF) | (1 << F_ZF));                         \
+            TSTw_REG(xFlags, x1), cEQ, cNE, X_CF | X_ZF)                  \
+        break;                                                            \
+    case B + 0x7:                                                         \
+        INST_NAME(T1 "NBE " T2);                                          \
+        GO(MOV32w(x1, (1 << F_CF) | (1 << F_ZF));                         \
+            TSTw_REG(xFlags, x1), cNE, cEQ, X_CF | X_ZF)                  \
+        break;                                                            \
+    case B + 0x8:                                                         \
+        INST_NAME(T1 "S " T2);                                            \
+        GO(TSTw_mask(xFlags, 0b011001, 0), cEQ, cNE, X_SF)                \
+        break;                                                            \
+    case B + 0x9:                                                         \
+        INST_NAME(T1 "NS " T2);                                           \
+        GO(TSTw_mask(xFlags, 0b011001, 0), cNE, cEQ, X_SF)                \
+        break;                                                            \
+    case B + 0xA:                                                         \
+        INST_NAME(T1 "P " T2);                                            \
+        GO(TSTw_mask(xFlags, 0b011110, 0), cEQ, cNE, X_PF)                \
+        break;                                                            \
+    case B + 0xB:                                                         \
+        INST_NAME(T1 "NP " T2);                                           \
+        GO(TSTw_mask(xFlags, 0b011110, 0), cNE, cEQ, X_PF)                \
+        break;                                                            \
+    case B + 0xC:                                                         \
+        INST_NAME(T1 "L " T2);                                            \
+        GO_FAST(cLT, EORw_REG_LSL(x1, xFlags, xFlags, F_OF - F_SF);       \
+                TSTw_mask(x1, 0b010101, 0), cEQ, cNE, X_SF | X_OF)        \
+        break;                                                            \
+    case B + 0xD:                                                         \
+        INST_NAME(T1 "GE " T2);                                           \
+        GO_FAST(cGE, EORw_REG_LSL(x1, xFlags, xFlags, F_OF - F_SF);       \
+                TSTw_mask(x1, 0b010101, 0), cNE, cEQ, X_SF | X_OF)        \
+        break;                                                            \
+    case B + 0xE:                                                         \
+        INST_NAME(T1 "LE " T2);                                           \
+        GO_FAST(cLE, EORw_REG_LSL(x1, xFlags, xFlags, F_OF - F_SF);       \
+                ORRw_REG_LSL(x1, x1, xFlags, F_OF - F_ZF);                \
+                TSTw_mask(x1, 0b010101, 0), cEQ, cNE, X_SF | X_OF | X_ZF) \
+        break;                                                            \
+    case B + 0xF:                                                         \
+        INST_NAME(T1 "G " T2);                                            \
+        GO_FAST(cGT, EORw_REG_LSL(x1, xFlags, xFlags, F_OF - F_SF);       \
+                ORRw_REG_LSL(x1, x1, xFlags, F_OF - F_ZF);                \
+                TSTw_mask(x1, 0b010101, 0), cNE, cEQ, X_SF | X_OF | X_ZF) \
+        break
+
 #define NOTEST(s1)                                           \
     if (box64_dynarec_test) {                                \
         STRw_U12(xZR, xEmu, offsetof(x64emu_t, test.test));  \
