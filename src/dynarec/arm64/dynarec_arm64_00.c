@@ -24,6 +24,80 @@
 #include "dynarec_arm64_functions.h"
 #include "dynarec_arm64_helper.h"
 
+#define GOCOND_FAST(B, T1, T2)                                            \
+    case B + 0x0:                                                         \
+        INST_NAME(T1 "O " T2);                                            \
+        GO(/*cVS,*/ TSTw_mask(xFlags, 0b010101, 0), cEQ, cNE, X_OF)       \
+        break;                                                            \
+    case B + 0x1:                                                         \
+        INST_NAME(T1 "NO " T2);                                           \
+        GO(/*cVC,*/ TSTw_mask(xFlags, 0b010101, 0), cNE, cEQ, X_OF)       \
+        break;                                                            \
+    case B + 0x2:                                                         \
+        INST_NAME(T1 "C " T2);                                            \
+        GO(/*cCS,*/ TSTw_mask(xFlags, 0, 0), cEQ, cNE, X_CF)              \
+        break;                                                            \
+    case B + 0x3:                                                         \
+        INST_NAME(T1 "NC " T2);                                           \
+        GO(/*cCC,*/ TSTw_mask(xFlags, 0, 0), cNE, cEQ, X_CF)              \
+        break;                                                            \
+    case B + 0x4:                                                         \
+        INST_NAME(T1 "Z " T2);                                            \
+        GO_FAST(cEQ, TSTw_mask(xFlags, 0b011010, 0), cEQ, cNE, X_ZF)      \
+        break;                                                            \
+    case B + 0x5:                                                         \
+        INST_NAME(T1 "NZ " T2);                                           \
+        GO_FAST(cNE, TSTw_mask(xFlags, 0b011010, 0), cNE, cEQ, X_ZF)      \
+        break;                                                            \
+    case B + 0x6:                                                         \
+        INST_NAME(T1 "BE " T2);                                           \
+        GO(/*cLS,*/ MOV32w(x1, (1 << F_CF) | (1 << F_ZF));                \
+            TSTw_REG(xFlags, x1), cEQ, cNE, X_CF | X_ZF)                  \
+        break;                                                            \
+    case B + 0x7:                                                         \
+        INST_NAME(T1 "NBE " T2);                                          \
+        GO(/*cHI,*/ MOV32w(x1, (1 << F_CF) | (1 << F_ZF));                \
+            TSTw_REG(xFlags, x1), cNE, cEQ, X_CF | X_ZF)                  \
+        break;                                                            \
+    case B + 0x8:                                                         \
+        INST_NAME(T1 "S " T2);                                            \
+        GO(/*cMI,*/ TSTw_mask(xFlags, 0b011001, 0), cEQ, cNE, X_SF)       \
+        break;                                                            \
+    case B + 0x9:                                                         \
+        INST_NAME(T1 "NS " T2);                                           \
+        GO(/*cPL,*/ TSTw_mask(xFlags, 0b011001, 0), cNE, cEQ, X_SF)       \
+        break;                                                            \
+    case B + 0xA:                                                         \
+        INST_NAME(T1 "P " T2);                                            \
+        GO(TSTw_mask(xFlags, 0b011110, 0), cEQ, cNE, X_PF)                \
+        break;                                                            \
+    case B + 0xB:                                                         \
+        INST_NAME(T1 "NP " T2);                                           \
+        GO(TSTw_mask(xFlags, 0b011110, 0), cNE, cEQ, X_PF)                \
+        break;                                                            \
+    case B + 0xC:                                                         \
+        INST_NAME(T1 "L " T2);                                            \
+        GO_FAST(cLT, EORw_REG_LSL(x1, xFlags, xFlags, F_OF - F_SF);       \
+                TSTw_mask(x1, 0b010101, 0), cEQ, cNE, X_SF | X_OF)        \
+        break;                                                            \
+    case B + 0xD:                                                         \
+        INST_NAME(T1 "GE " T2);                                           \
+        GO_FAST(cGE, EORw_REG_LSL(x1, xFlags, xFlags, F_OF - F_SF);       \
+                TSTw_mask(x1, 0b010101, 0), cNE, cEQ, X_SF | X_OF)        \
+        break;                                                            \
+    case B + 0xE:                                                         \
+        INST_NAME(T1 "LE " T2);                                           \
+        GO_FAST(cLE, EORw_REG_LSL(x1, xFlags, xFlags, F_OF - F_SF);       \
+                ORRw_REG_LSL(x1, x1, xFlags, F_OF - F_ZF);                \
+                TSTw_mask(x1, 0b010101, 0), cEQ, cNE, X_SF | X_OF | X_ZF) \
+        break;                                                            \
+    case B + 0xF:                                                         \
+        INST_NAME(T1 "G " T2);                                            \
+        GO_FAST(cGT, EORw_REG_LSL(x1, xFlags, xFlags, F_OF - F_SF);       \
+                ORRw_REG_LSL(x1, x1, xFlags, F_OF - F_ZF);                \
+                TSTw_mask(x1, 0b010101, 0), cNE, cEQ, X_SF | X_OF | X_ZF) \
+        break
+
 int isSimpleWrapper(wrapper_t fun);
 int isRetX87Wrapper(wrapper_t fun);
 
@@ -479,7 +553,7 @@ uintptr_t dynarec64_00(dynarec_arm_t* dyn, uintptr_t addr, uintptr_t ip, int nin
             GETGB(x2);
             emit_cmp8(dyn, ninst, x1, x2, x3, x4, x5);
             if ((*(uint8_t*)addr & 0x70) == 0x70) { // NEXT INST is CJUMP
-                 dyn->nzvc_valid = 1;
+                dyn->nzvc_valid = 1;
             }
             break;
         case 0x39:
@@ -501,7 +575,7 @@ uintptr_t dynarec64_00(dynarec_arm_t* dyn, uintptr_t addr, uintptr_t ip, int nin
             GETGB(x1);
             emit_cmp8(dyn, ninst, x1, x2, x3, x4, x5);
             if ((*(uint8_t*)addr & 0x70) == 0x70) { // NEXT INST is CJUMP
-                 dyn->nzvc_valid = 1;
+                dyn->nzvc_valid = 1;
             }
             break;
         case 0x3B:
@@ -874,7 +948,7 @@ uintptr_t dynarec64_00(dynarec_arm_t* dyn, uintptr_t addr, uintptr_t ip, int nin
 
 #define GO(GETFLAGS, NO, YES, F)                                                                \
     if (dyn->nzvc_valid) {                                                                      \
-        if (box64_dynarec_dump) printf(">>>>>NZVC is valid\n");                                 \
+        if (box64_dynarec_dump) dynarec_log(LOG_NONE, ">>>>>NZVC is valid\n");                  \
         dyn->nzvc_valid = 0;                                                                    \
         READFLAGS(F);                                                                           \
         i8 = F8S;                                                                               \
@@ -895,13 +969,14 @@ uintptr_t dynarec64_00(dynarec_arm_t* dyn, uintptr_t addr, uintptr_t ip, int nin
                 B(i32);                                                                         \
             }                                                                                   \
         } else {                                                                                \
+            if (box64_dynarec_dump) dynarec_log(LOG_NONE, ">>>>>SUPPORTME\n");                  \
             GETFLAGS;                                                                           \
             /* inside the block */                                                              \
             i32 = dyn->insts[dyn->insts[ninst].x64.jmp_insts].address - (dyn->native_size);     \
             Bcond(YES, i32);                                                                    \
         }                                                                                       \
     } else {                                                                                    \
-        if (box64_dynarec_dump) printf(">>>>>NZVC is invalid\n");                               \
+        if (box64_dynarec_dump) dynarec_log(LOG_NONE, ">>>>>NZVC is invalid\n");                \
         READFLAGS(F);                                                                           \
         i8 = F8S;                                                                               \
         BARRIER(BARRIER_MAYBE);                                                                 \
@@ -929,13 +1004,14 @@ uintptr_t dynarec64_00(dynarec_arm_t* dyn, uintptr_t addr, uintptr_t ip, int nin
 
 #define GO_FAST(COND, GETFLAGS, NO, YES, F)                                                     \
     if (dyn->nzvc_valid) {                                                                      \
-        if (box64_dynarec_dump) printf(">>>>>NZVC is valid\n");                                 \
+        if (box64_dynarec_dump) dynarec_log(LOG_NONE, ">>>>>NZVC is valid\n");                  \
         dyn->nzvc_valid = 0;                                                                    \
         READFLAGS(F);                                                                           \
         i8 = F8S;                                                                               \
         BARRIER(BARRIER_MAYBE);                                                                 \
         JUMP(addr + i8, 1);                                                                     \
         if (dyn->insts[ninst].x64.jmp_insts == -1 || CHECK_CACHE()) {                           \
+            if (box64_dynarec_dump) dynarec_log(LOG_NONE, ">>>>>JUMP_OUT\n");                   \
             GETFLAGS;                                                                           \
             /* out of the block */                                                              \
             i32 = dyn->insts[ninst].epilog - (dyn->native_size);                                \
@@ -950,13 +1026,13 @@ uintptr_t dynarec64_00(dynarec_arm_t* dyn, uintptr_t addr, uintptr_t ip, int nin
                 B(i32);                                                                         \
             }                                                                                   \
         } else {                                                                                \
-            if (box64_dynarec_dump) printf(">>>>>FAST!\n");                                     \
+            if (box64_dynarec_dump) dynarec_log(LOG_NONE, ">>>>>FAST!\n");                      \
             /* inside the block */                                                              \
             i32 = dyn->insts[dyn->insts[ninst].x64.jmp_insts].address - (dyn->native_size);     \
             Bcond(COND, i32);                                                                   \
         }                                                                                       \
     } else {                                                                                    \
-        if (box64_dynarec_dump) printf(">>>>>NZVC is invalid\n");                               \
+        if (box64_dynarec_dump) dynarec_log(LOG_NONE, ">>>>>NZVC is invalid\n");                \
         READFLAGS(F);                                                                           \
         i8 = F8S;                                                                               \
         BARRIER(BARRIER_MAYBE);                                                                 \
@@ -1204,7 +1280,7 @@ uintptr_t dynarec64_00(dynarec_arm_t* dyn, uintptr_t addr, uintptr_t ip, int nin
                     } else
                         emit_cmp32_0(dyn, ninst, rex, ed, x3, x4);
                     if ((*(uint8_t*)addr & 0x70) == 0x70) { // NEXT INST is CJUMP
-                        // dyn->nzvc_valid = 1;
+                        dyn->nzvc_valid = 1;                //
                     }
                     break;
             }
@@ -1217,7 +1293,7 @@ uintptr_t dynarec64_00(dynarec_arm_t* dyn, uintptr_t addr, uintptr_t ip, int nin
             GETGB(x2);
             emit_test8(dyn, ninst, x1, x2, x3, x4, x5);
             if ((*(uint8_t*)addr & 0x70) == 0x70) { // NEXT INST is CJUMP
-                // dyn->nzvc_valid = 1;
+                dyn->nzvc_valid = 1;
             }
             break;
         case 0x85:
@@ -1228,7 +1304,7 @@ uintptr_t dynarec64_00(dynarec_arm_t* dyn, uintptr_t addr, uintptr_t ip, int nin
             GETED(0);
             emit_test32(dyn, ninst, rex, ed, gd, x3, x5, x6);
             if ((*(uint8_t*)addr & 0x70) == 0x70) { // NEXT INST is CJUMP
-                // dyn->nzvc_valid = 1;
+                dyn->nzvc_valid = 1;
             }
             break;
         case 0x86:
@@ -1740,7 +1816,7 @@ uintptr_t dynarec64_00(dynarec_arm_t* dyn, uintptr_t addr, uintptr_t ip, int nin
             MOV32w(x2, u8);
             emit_test8(dyn, ninst, x1, x2, x3, x4, x5);
             if ((*(uint8_t*)addr & 0x70) == 0x70) { // NEXT INST is CJUMP
-                // dyn->nzvc_valid = 1;
+                dyn->nzvc_valid = 1;
             }
             break;
         case 0xA9:
@@ -1750,7 +1826,7 @@ uintptr_t dynarec64_00(dynarec_arm_t* dyn, uintptr_t addr, uintptr_t ip, int nin
             MOV64xw(x2, i64);
             emit_test32(dyn, ninst, rex, xRAX, x2, x3, x4, x5);
             if ((*(uint8_t*)addr & 0x70) == 0x70) { // NEXT INST is CJUMP
-                // dyn->nzvc_valid = 1;
+                dyn->nzvc_valid = 1;
             }
             break;
         case 0xAA:
@@ -3105,7 +3181,7 @@ uintptr_t dynarec64_00(dynarec_arm_t* dyn, uintptr_t addr, uintptr_t ip, int nin
                     MOV32w(x2, u8);
                     emit_test8(dyn, ninst, x1, x2, x3, x4, x5);
                     if ((*(uint8_t*)addr & 0x70) == 0x70) { // NEXT INST is CJUMP
-                        // dyn->nzvc_valid = 1;
+                        dyn->nzvc_valid = 1;
                     }
                     break;
                 case 2:
@@ -3176,7 +3252,7 @@ uintptr_t dynarec64_00(dynarec_arm_t* dyn, uintptr_t addr, uintptr_t ip, int nin
                     MOV64xw(x2, i64);
                     emit_test32(dyn, ninst, rex, ed, x2, x3, x4, x5);
                     if ((*(uint8_t*)addr & 0x70) == 0x70) { // NEXT INST is CJUMP
-                        // dyn->nzvc_valid = 1;
+                        dyn->nzvc_valid = 1;
                     }
                     break;
                 case 2:
