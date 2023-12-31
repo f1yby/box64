@@ -948,7 +948,6 @@ uintptr_t dynarec64_00(dynarec_arm_t* dyn, uintptr_t addr, uintptr_t ip, int nin
 
 #define GO(GETFLAGS, NO, YES, F)                                                                \
     if (dyn->nzvc_valid) {                                                                      \
-        if (box64_dynarec_dump) dynarec_log(LOG_NONE, ">>>>>NZVC is valid\n");                  \
         dyn->nzvc_valid = 0;                                                                    \
         READFLAGS(F);                                                                           \
         i8 = F8S;                                                                               \
@@ -969,14 +968,12 @@ uintptr_t dynarec64_00(dynarec_arm_t* dyn, uintptr_t addr, uintptr_t ip, int nin
                 B(i32);                                                                         \
             }                                                                                   \
         } else {                                                                                \
-            if (box64_dynarec_dump) dynarec_log(LOG_NONE, ">>>>>SUPPORTME\n");                  \
             GETFLAGS;                                                                           \
             /* inside the block */                                                              \
             i32 = dyn->insts[dyn->insts[ninst].x64.jmp_insts].address - (dyn->native_size);     \
             Bcond(YES, i32);                                                                    \
         }                                                                                       \
     } else {                                                                                    \
-        if (box64_dynarec_dump) dynarec_log(LOG_NONE, ">>>>>NZVC is invalid\n");                \
         READFLAGS(F);                                                                           \
         i8 = F8S;                                                                               \
         BARRIER(BARRIER_MAYBE);                                                                 \
