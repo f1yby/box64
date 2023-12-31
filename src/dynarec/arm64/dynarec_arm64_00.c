@@ -27,19 +27,19 @@
 #define GOCOND_FAST(B, T1, T2)                                            \
     case B + 0x0:                                                         \
         INST_NAME(T1 "O " T2);                                            \
-        GO(/*cVS,*/ TSTw_mask(xFlags, 0b010101, 0), cEQ, cNE, X_OF)       \
+        GO(TSTw_mask(xFlags, 0b010101, 0), cEQ, cNE, X_OF)                \
         break;                                                            \
     case B + 0x1:                                                         \
         INST_NAME(T1 "NO " T2);                                           \
-        GO(/*cVC,*/ TSTw_mask(xFlags, 0b010101, 0), cNE, cEQ, X_OF)       \
+        GO(TSTw_mask(xFlags, 0b010101, 0), cNE, cEQ, X_OF)                \
         break;                                                            \
     case B + 0x2:                                                         \
         INST_NAME(T1 "C " T2);                                            \
-        GO(/*cCS,*/ TSTw_mask(xFlags, 0, 0), cEQ, cNE, X_CF)              \
+        GO(TSTw_mask(xFlags, 0, 0), cEQ, cNE, X_CF)                       \
         break;                                                            \
     case B + 0x3:                                                         \
         INST_NAME(T1 "NC " T2);                                           \
-        GO(/*cCC,*/ TSTw_mask(xFlags, 0, 0), cNE, cEQ, X_CF)              \
+        GO(TSTw_mask(xFlags, 0, 0), cNE, cEQ, X_CF)                       \
         break;                                                            \
     case B + 0x4:                                                         \
         INST_NAME(T1 "Z " T2);                                            \
@@ -51,21 +51,21 @@
         break;                                                            \
     case B + 0x6:                                                         \
         INST_NAME(T1 "BE " T2);                                           \
-        GO(/*cLS,*/ MOV32w(x1, (1 << F_CF) | (1 << F_ZF));                \
+        GO(MOV32w(x1, (1 << F_CF) | (1 << F_ZF));                         \
             TSTw_REG(xFlags, x1), cEQ, cNE, X_CF | X_ZF)                  \
         break;                                                            \
     case B + 0x7:                                                         \
         INST_NAME(T1 "NBE " T2);                                          \
-        GO(/*cHI,*/ MOV32w(x1, (1 << F_CF) | (1 << F_ZF));                \
+        GO(MOV32w(x1, (1 << F_CF) | (1 << F_ZF));                         \
             TSTw_REG(xFlags, x1), cNE, cEQ, X_CF | X_ZF)                  \
         break;                                                            \
     case B + 0x8:                                                         \
         INST_NAME(T1 "S " T2);                                            \
-        GO(/*cMI,*/ TSTw_mask(xFlags, 0b011001, 0), cEQ, cNE, X_SF)       \
+        GO(TSTw_mask(xFlags, 0b011001, 0), cEQ, cNE, X_SF)                \
         break;                                                            \
     case B + 0x9:                                                         \
         INST_NAME(T1 "NS " T2);                                           \
-        GO(/*cPL,*/ TSTw_mask(xFlags, 0b011001, 0), cNE, cEQ, X_SF)       \
+        GO(TSTw_mask(xFlags, 0b011001, 0), cNE, cEQ, X_SF)                \
         break;                                                            \
     case B + 0xA:                                                         \
         INST_NAME(T1 "P " T2);                                            \
@@ -1012,10 +1012,9 @@ uintptr_t dynarec64_00(dynarec_arm_t* dyn, uintptr_t addr, uintptr_t ip, int nin
         JUMP(addr + i8, 1);                                                                     \
         if (dyn->insts[ninst].x64.jmp_insts == -1 || CHECK_CACHE()) {                           \
             if (box64_dynarec_dump) dynarec_log(LOG_NONE, ">>>>>JUMP_OUT\n");                   \
-            GETFLAGS;                                                                           \
             /* out of the block */                                                              \
             i32 = dyn->insts[ninst].epilog - (dyn->native_size);                                \
-            Bcond(NO, i32);                                                                     \
+            Bcond(invCond(COND), i32);                                                          \
             if (dyn->insts[ninst].x64.jmp_insts == -1) {                                        \
                 if (!(dyn->insts[ninst].x64.barrier & BARRIER_FLOAT))                           \
                     fpu_purgecache(dyn, ninst, 1, x1, x2, x3);                                  \
