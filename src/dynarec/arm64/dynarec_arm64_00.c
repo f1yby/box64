@@ -51,21 +51,21 @@
         break;                                                            \
     case B + 0x6:                                                         \
         INST_NAME(T1 "BE " T2);                                           \
-        GO(MOV32w(x1, (1 << F_CF) | (1 << F_ZF));                         \
-            TSTw_REG(xFlags, x1), cEQ, cNE, X_CF | X_ZF)                  \
+        GO_FAST(cLS, MOV32w(x1, (1 << F_CF) | (1 << F_ZF));               \
+                TSTw_REG(xFlags, x1), cEQ, cNE, X_CF | X_ZF)              \
         break;                                                            \
     case B + 0x7:                                                         \
         INST_NAME(T1 "NBE " T2);                                          \
-        GO(MOV32w(x1, (1 << F_CF) | (1 << F_ZF));                         \
-            TSTw_REG(xFlags, x1), cNE, cEQ, X_CF | X_ZF)                  \
+        GO_FAST(cHI, MOV32w(x1, (1 << F_CF) | (1 << F_ZF));               \
+                TSTw_REG(xFlags, x1), cNE, cEQ, X_CF | X_ZF)              \
         break;                                                            \
     case B + 0x8:                                                         \
         INST_NAME(T1 "S " T2);                                            \
-        GO_FAST(cMI,TSTw_mask(xFlags, 0b011001, 0), cEQ, cNE, X_SF)                \
+        GO_FAST(cMI, TSTw_mask(xFlags, 0b011001, 0), cEQ, cNE, X_SF)      \
         break;                                                            \
     case B + 0x9:                                                         \
         INST_NAME(T1 "NS " T2);                                           \
-        GO_FAST(cPL,TSTw_mask(xFlags, 0b011001, 0), cNE, cEQ, X_SF)                \
+        GO_FAST(cPL, TSTw_mask(xFlags, 0b011001, 0), cNE, cEQ, X_SF)      \
         break;                                                            \
     case B + 0xA:                                                         \
         INST_NAME(T1 "P " T2);                                            \
@@ -1138,7 +1138,8 @@ uintptr_t dynarec64_00(dynarec_arm_t* dyn, uintptr_t addr, uintptr_t ip, int nin
                         emit_cmp8_0(dyn, ninst, x1, x3, x4);
                     }
                     if ((*(uint8_t*)addr & 0x70) == 0x70) { // NEXT INST is CJUMP
-                        dyn->nzvc_valid = 1;
+                        dynarec_log(LOG_NONE, "ANALYZE ME");
+                        // dyn->nzvc_valid = 1;
                     }
                     break;
                 default:
