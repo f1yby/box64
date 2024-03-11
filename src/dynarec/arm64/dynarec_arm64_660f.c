@@ -1430,6 +1430,19 @@ uintptr_t dynarec64_660F(dynarec_arm_t* dyn, uintptr_t addr, uintptr_t ip, int n
             }
             break;
 
+        #define GOW(YES,NO)            \
+            nextop=F8;                              \
+            GETGD;                                  \
+            if(MODREG) {                            \
+                ed = xRAX+(nextop&7)+(rex.b<<3);    \
+            } else {                                \
+                SMREAD();                           \
+                addr = geted(dyn, addr, ninst, nextop, &ed, x2, &fixedaddress, &unscaled, 0xfff<<1, 1, rex, NULL, 0, 0); \
+                LDH(x1, ed, fixedaddress);          \
+                ed = x1;                            \
+            }                                       \
+            Bcond(NO, +8);                          \
+            BFIx(gd, ed, 0, 16);
         #define GO(GETFLAGS, NO, YES, F)            \
             READFLAGS(F);                           \
             GETFLAGS;                               \
@@ -1446,8 +1459,9 @@ uintptr_t dynarec64_660F(dynarec_arm_t* dyn, uintptr_t addr, uintptr_t ip, int n
             Bcond(NO, +8);                          \
             BFIx(gd, ed, 0, 16);
 
-        GOCOND(0x40, "CMOV", "Gw, Ew");
+        GOCONDW(0x40, "CMOV", "Gw, Ew");
         #undef GO
+        #undef GOW
 
         case 0x50:
             nextop = F8;
