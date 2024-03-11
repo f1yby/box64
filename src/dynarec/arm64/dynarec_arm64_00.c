@@ -995,7 +995,8 @@ uintptr_t dynarec64_00(dynarec_arm_t* dyn, uintptr_t addr, uintptr_t ip, int nin
             *ok = 0;
             break;
 
-        #define GOW(YES, NO)                                \
+        #define GOW(YES, NO,F)                                \
+            READFLAGS(F);                                               \
             i8 = F8S;                                                   \
             BARRIER(BARRIER_MAYBE);                                     \
             JUMP(addr+i8, 1);                                           \

@@ -1430,7 +1430,8 @@ uintptr_t dynarec64_660F(dynarec_arm_t* dyn, uintptr_t addr, uintptr_t ip, int n
             }
             break;
 
-        #define GOW(YES,NO)            \
+        #define GOW(YES,NO,F)            \
+            READFLAGS(F);                               \
             nextop=F8;                              \
             GETGD;                                  \
             if(MODREG) {                            \

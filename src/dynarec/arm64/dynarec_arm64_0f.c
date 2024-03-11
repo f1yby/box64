@@ -955,7 +955,8 @@ uintptr_t dynarec64_0F(dynarec_arm_t* dyn, uintptr_t addr, uintptr_t ip, int nin
             }
             break;
 
-        #define GOW(YES,NO)            \
+        #define GOW(YES,NO,F)            \
+            READFLAGS(F);                               \
             nextop=F8;                              \
             GETGD;                                  \
             if(MODREG) {                            \
@@ -1557,7 +1558,8 @@ uintptr_t dynarec64_0F(dynarec_arm_t* dyn, uintptr_t addr, uintptr_t ip, int nin
             }
             break;
 
-        #define GOW(YES, NO)   \
+        #define GOW(YES, NO, F)   \
+            READFLAGS(F);                               \
             i32_ = F32S;                                                \
             BARRIER(BARRIER_MAYBE);                                     \
             JUMP(addr+i32_, 1);                                         \
@@ -1611,7 +1613,8 @@ uintptr_t dynarec64_0F(dynarec_arm_t* dyn, uintptr_t addr, uintptr_t ip, int nin
         #undef GO
         #undef GOW
 
-        #define GOW(YES, NO)                \
+        #define GOW(YES, NO, F)                \
+            READFLAGS(F);                               \
             nextop=F8;                                  \
             CSETw(x3, YES);                             \
             if(MODREG) {                                \
