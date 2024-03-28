@@ -968,6 +968,19 @@ uintptr_t dynarec64_0F(dynarec_arm_t* dyn, uintptr_t addr, uintptr_t ip, int nin
             }
             break;
 
+#define GOW(YES, F)                                                                                                                               \
+    READFLAGS(F);                                                                                                                                 \
+    nextop = F8;                                                                                                                                  \
+    GETGD;                                                                                                                                        \
+    if (MODREG) {                                                                                                                                 \
+        ed = xRAX + (nextop & 7) + (rex.b << 3);                                                                                                  \
+        CSELxw(gd, ed, gd, YES);                                                                                                                  \
+    } else {                                                                                                                                      \
+        addr = geted(dyn, addr, ninst, nextop, &ed, x2, &fixedaddress, &unscaled, 0xfff << (2 + rex.w), (1 << (2 + rex.w)) - 1, rex, NULL, 0, 0); \
+        Bcond(invCond(YES), +8);                                                                                                                  \
+        LDxw(gd, ed, fixedaddress);                                                                                                               \
+        if (!rex.w) { MOVw_REG(gd, gd); }                                                                                                         \
+    }
 #define GO(GETFLAGS, NO, YES, F)                                                                                                                  \
     READFLAGS(F);                                                                                                                                 \
     GETFLAGS;                                                                                                                                     \
@@ -983,8 +996,9 @@ uintptr_t dynarec64_0F(dynarec_arm_t* dyn, uintptr_t addr, uintptr_t ip, int nin
         if (!rex.w) { MOVw_REG(gd, gd); }                                                                                                         \
     }
 
-            GOCOND(0x40, "CMOV", "Gd, Ed");
+            GOCONDW(0x40, "CMOV", "Gd, Ed");
 #undef GO
+#undef GOW
         case 0x50:
             INST_NAME("MOVMSPKPS Gd, Ex");
             nextop = F8;
@@ -1558,6 +1572,29 @@ uintptr_t dynarec64_0F(dynarec_arm_t* dyn, uintptr_t addr, uintptr_t ip, int nin
             }
             break;
 
+#define GOW(YES, F)                                                                         \
+    READFLAGS(F);                                                                           \
+    i32_ = F32S;                                                                            \
+    BARRIER(BARRIER_MAYBE);                                                                 \
+    JUMP(addr + i32_, 1);                                                                   \
+    if (dyn->insts[ninst].x64.jmp_insts == -1 || CHECK_CACHE()) {                           \
+        /* out of the block */                                                              \
+        i32 = dyn->insts[ninst].epilog - (dyn->native_size);                                \
+        Bcond(invCond(YES), i32);                                                           \
+        if (dyn->insts[ninst].x64.jmp_insts == -1) {                                        \
+            if (!(dyn->insts[ninst].x64.barrier & BARRIER_FLOAT))                           \
+                fpu_purgecache(dyn, ninst, 1, x1, x2, x3);                                  \
+            jump_to_next(dyn, addr + i32_, 0, ninst, rex.is32bits);                         \
+        } else {                                                                            \
+            CacheTransform(dyn, ninst, cacheupd, x1, x2, x3);                               \
+            i32 = dyn->insts[dyn->insts[ninst].x64.jmp_insts].address - (dyn->native_size); \
+            B(i32);                                                                         \
+        }                                                                                   \
+    } else {                                                                                \
+        /* inside the block */                                                              \
+        i32 = dyn->insts[dyn->insts[ninst].x64.jmp_insts].address - (dyn->native_size);     \
+        Bcond(YES, i32);                                                                    \
+    }
 #define GO(GETFLAGS, NO, YES, F)                                                            \
     READFLAGS(F);                                                                           \
     i32_ = F32S;                                                                            \
@@ -1583,9 +1620,30 @@ uintptr_t dynarec64_0F(dynarec_arm_t* dyn, uintptr_t addr, uintptr_t ip, int nin
         Bcond(YES, i32);                                                                    \
     }
 
-            GOCOND(0x80, "J", "Id");
-#undef GO
+            GOCONDW(0x80, "J", "Id");
 
+#undef GO
+#undef GOW
+
+#define GOW(YES, F)                                                                                           \
+    READFLAGS(F);                                                                                             \
+    nextop = F8;                                                                                              \
+    CSETw(x3, YES);                                                                                           \
+    if (MODREG) {                                                                                             \
+        if (rex.rex) {                                                                                        \
+            eb1 = xRAX + (nextop & 7) + (rex.b << 3);                                                         \
+            eb2 = 0;                                                                                          \
+        } else {                                                                                              \
+            ed = (nextop & 7);                                                                                \
+            eb2 = (ed >> 2) * 8;                                                                              \
+            eb1 = xRAX + (ed & 3);                                                                            \
+        }                                                                                                     \
+        BFIx(eb1, x3, eb2, 8);                                                                                \
+    } else {                                                                                                  \
+        addr = geted(dyn, addr, ninst, nextop, &ed, x2, &fixedaddress, &unscaled, 0xfff, 0, rex, NULL, 0, 0); \
+        STB(x3, ed, fixedaddress);                                                                            \
+        SMWRITE();                                                                                            \
+    }
 #define GO(GETFLAGS, NO, YES, F)                                                                              \
     READFLAGS(F);                                                                                             \
     GETFLAGS;                                                                                                 \
@@ -1607,8 +1665,9 @@ uintptr_t dynarec64_0F(dynarec_arm_t* dyn, uintptr_t addr, uintptr_t ip, int nin
         SMWRITE();                                                                                            \
     }
 
-            GOCOND(0x90, "SET", "Eb");
+            GOCONDW(0x90, "SET", "Eb");
 #undef GO
+#undef GOW
         case 0xA0:
             INST_NAME("PUSH FS");
             LDRH_U12(x2, xEmu, offsetof(x64emu_t, segs[_FS]));

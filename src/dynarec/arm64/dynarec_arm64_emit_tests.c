@@ -51,22 +51,22 @@ void emit_cmp32(dynarec_arm_t* dyn, int ninst, rex_t rex, int s1, int s2, int s3
         LSRxw(s4, s3, 3);
         BFIx(xFlags, s4, F_AF, 1); // AF: bc & 0x08
     }
-    IFX (X_ZF) {
-        CSETw(s4, cEQ);
-        BFIw(xFlags, s4, F_ZF, 1);
-    }
     IFX (X_CF) {
+        IFX (X_ZF) {
+            CSETw(s4, cEQ);
+            BFIw(xFlags, s4, F_ZF, 1);
+        }
         // inverted carry
         CSETw(s4, cCC);
         BFIw(xFlags, s4, F_CF, 1);
-    }
-    IFX (X_OF) {
-        CSETw(s4, cVS);
-        BFIw(xFlags, s4, F_OF, 1);
-    }
-    IFX (X_SF) {
-        LSRxw(s3, s5, (rex.w) ? 63 : 31);
-        BFIw(xFlags, s3, F_SF, 1);
+        IFX (X_OF) {
+            CSETw(s4, cVS);
+            BFIw(xFlags, s4, F_OF, 1);
+        }
+        IFX (X_SF) {
+            LSRxw(s3, s5, (rex.w) ? 63 : 31);
+            BFIw(xFlags, s3, F_SF, 1);
+        }
     }
     IFX (X_PF) {
         emit_pf(dyn, ninst, s5, s3, s4);
@@ -266,22 +266,27 @@ void emit_test32(dynarec_arm_t* dyn, int ninst, rex_t rex, int s1, int s2, int s
     {
         SET_DFNONE(s4);
     }
-    IFX (X_CF | X_AF | X_OF) {
-        MOV32w(s3, (1 << F_CF) | (1 << F_AF) | (1 << F_OF));
-        BICw(xFlags, xFlags, s3);
+
+    IFX (X_CF) {
+        IFX (X_CF | X_AF | X_OF) {
+            MOV32w(s3, (1 << F_CF) | (1 << F_AF) | (1 << F_OF));
+            BICw(xFlags, xFlags, s3);
+        }
     }
     ANDSxw_REG(s3, s1, s2); // res = s1 & s2
     IFX_PENDOR0
     {
         STRxw_U12(s3, xEmu, offsetof(x64emu_t, res));
     }
-    IFX (X_ZF) {
-        CSETw(s4, cEQ);
-        BFIw(xFlags, s4, F_ZF, 1);
-    }
-    IFX (X_SF) {
-        LSRxw(s4, s3, rex.w ? 63 : 31);
-        BFIw(xFlags, s4, F_SF, 1);
+    IFX (X_CF) {
+        IFX (X_ZF) {
+            CSETw(s4, cEQ);
+            BFIw(xFlags, s4, F_ZF, 1);
+        }
+        IFX (X_SF) {
+            LSRxw(s4, s3, rex.w ? 63 : 31);
+            BFIw(xFlags, s4, F_SF, 1);
+        }
     }
     // PF: (((emu->x64emu_parity_tab[(res) / 32] >> ((res) % 32)) & 1) == 0)
     IFX (X_PF) {

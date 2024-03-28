@@ -1579,6 +1579,139 @@ uintptr_t dynarec64_F30F(dynarec_arm_t* dyn, uintptr_t addr, uintptr_t ip, int n
 #define MAYUSE(A)
 #endif
 
+#define GOCONDWW(B, T1, T2)                                \
+    case B + 0x0:                                          \
+        INST_NAME(T1 "O " T2);                             \
+        GOW((cVS), X_OF)                                   \
+        break;                                             \
+    case B + 0x1:                                          \
+        INST_NAME(T1 "NO " T2);                            \
+        GOW((cVC), X_OF)                                   \
+        break;                                             \
+    case B + 0x2:                                          \
+        INST_NAME(T1 "C " T2);                             \
+        GOW((cCS), X_CF)                                   \
+        break;                                             \
+    case B + 0x3:                                          \
+        INST_NAME(T1 "NC " T2);                            \
+        GOW((cCC), X_CF)                                   \
+        break;                                             \
+    case B + 0x4:                                          \
+        INST_NAME(T1 "Z " T2);                             \
+        GOW((cEQ), X_ZF)                                   \
+        break;                                             \
+    case B + 0x5:                                          \
+        INST_NAME(T1 "NZ " T2);                            \
+        GOW((cNE), X_ZF)                                   \
+        break;                                             \
+    case B + 0x6:                                          \
+        INST_NAME(T1 "BE " T2);                            \
+        GOW((cLS), X_CF | X_ZF)                            \
+        break;                                             \
+    case B + 0x7:                                          \
+        INST_NAME(T1 "NBE " T2);                           \
+        GOW((cHI), X_CF | X_ZF)                            \
+        break;                                             \
+    case B + 0x8:                                          \
+        INST_NAME(T1 "S " T2);                             \
+        GOW((cMI), X_SF)                                   \
+        break;                                             \
+    case B + 0x9:                                          \
+        INST_NAME(T1 "NS " T2);                            \
+        GOW((cPL), X_SF)                                   \
+        break;                                             \
+    case B + 0xA:                                          \
+        INST_NAME(T1 "P " T2);                             \
+        GO(TSTw_mask(xFlags, 0b011110, 0), cEQ, cNE, X_PF) \
+        break;                                             \
+    case B + 0xB:                                          \
+        INST_NAME(T1 "NP " T2);                            \
+        GO(TSTw_mask(xFlags, 0b011110, 0), cNE, cEQ, X_PF) \
+        break;                                             \
+    case B + 0xC:                                          \
+        INST_NAME(T1 "L " T2);                             \
+        GOW((cLT), X_SF | X_OF)                            \
+        break;                                             \
+    case B + 0xD:                                          \
+        INST_NAME(T1 "GE " T2);                            \
+        GOW((cGE), X_SF | X_OF)                            \
+        break;                                             \
+    case B + 0xE:                                          \
+        INST_NAME(T1 "LE " T2);                            \
+        GOW((cLE), X_SF | X_OF | X_ZF)                     \
+        break;                                             \
+    case B + 0xF:                                          \
+        INST_NAME(T1 "G " T2);                             \
+        GOW((cGT), X_SF | X_OF | X_ZF)                     \
+        break
+#define GOCONDW(B, T1, T2)                                 \
+    case B + 0x0:                                          \
+        INST_NAME(T1 "O " T2);                             \
+        GOW((cVS), X_OF)                                   \
+        break;                                             \
+    case B + 0x1:                                          \
+        INST_NAME(T1 "NO " T2);                            \
+        GOW((cVC), X_OF)                                   \
+        break;                                             \
+    case B + 0x2:                                          \
+        INST_NAME(T1 "C " T2);                             \
+        GO(TSTw_mask(xFlags, 0, 0), cEQ, cNE, X_CF)        \
+        break;                                             \
+    case B + 0x3:                                          \
+        INST_NAME(T1 "NC " T2);                            \
+        GO(TSTw_mask(xFlags, 0, 0), cNE, cEQ, X_CF)        \
+        break;                                             \
+    case B + 0x4:                                          \
+        INST_NAME(T1 "Z " T2);                             \
+        GOW((cEQ), X_ZF)                                   \
+        break;                                             \
+    case B + 0x5:                                          \
+        INST_NAME(T1 "NZ " T2);                            \
+        GOW((cNE), X_ZF)                                   \
+        break;                                             \
+    case B + 0x6:                                          \
+        INST_NAME(T1 "BE " T2);                            \
+        GO(MOV32w(x1, (1 << F_CF) | (1 << F_ZF));          \
+            TSTw_REG(xFlags, x1), cEQ, cNE, X_CF | X_ZF)   \
+        break;                                             \
+    case B + 0x7:                                          \
+        INST_NAME(T1 "NBE " T2);                           \
+        GO(MOV32w(x1, (1 << F_CF) | (1 << F_ZF));          \
+            TSTw_REG(xFlags, x1), cNE, cEQ, X_CF | X_ZF)   \
+        break;                                             \
+    case B + 0x8:                                          \
+        INST_NAME(T1 "S " T2);                             \
+        GOW((cMI), X_SF)                                   \
+        break;                                             \
+    case B + 0x9:                                          \
+        INST_NAME(T1 "NS " T2);                            \
+        GOW((cPL), X_SF)                                   \
+        break;                                             \
+    case B + 0xA:                                          \
+        INST_NAME(T1 "P " T2);                             \
+        GO(TSTw_mask(xFlags, 0b011110, 0), cEQ, cNE, X_PF) \
+        break;                                             \
+    case B + 0xB:                                          \
+        INST_NAME(T1 "NP " T2);                            \
+        GO(TSTw_mask(xFlags, 0b011110, 0), cNE, cEQ, X_PF) \
+        break;                                             \
+    case B + 0xC:                                          \
+        INST_NAME(T1 "L " T2);                             \
+        GOW((cLT), X_SF | X_OF)                            \
+        break;                                             \
+    case B + 0xD:                                          \
+        INST_NAME(T1 "GE " T2);                            \
+        GOW((cGE), X_SF | X_OF)                            \
+        break;                                             \
+    case B + 0xE:                                          \
+        INST_NAME(T1 "LE " T2);                            \
+        GOW((cLE), X_SF | X_OF | X_ZF)                     \
+        break;                                             \
+    case B + 0xF:                                          \
+        INST_NAME(T1 "G " T2);                             \
+        GOW((cGT), X_SF | X_OF | X_ZF)                     \
+        break
+
 #define GOCOND(B, T1, T2)                                             \
     case B + 0x0:                                                     \
         INST_NAME(T1 "O " T2);                                        \
