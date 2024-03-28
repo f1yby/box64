@@ -1430,7 +1430,7 @@ uintptr_t dynarec64_660F(dynarec_arm_t* dyn, uintptr_t addr, uintptr_t ip, int n
             }
             break;
 
-        #define GOW(YES,NO,F)            \
+        #define GOW(YES,F)            \
             READFLAGS(F);                               \
             nextop=F8;                              \
             GETGD;                                  \
@@ -1442,7 +1442,7 @@ uintptr_t dynarec64_660F(dynarec_arm_t* dyn, uintptr_t addr, uintptr_t ip, int n
                 LDH(x1, ed, fixedaddress);          \
                 ed = x1;                            \
             }                                       \
-            Bcond(NO, +8);                          \
+            Bcond(invCond(YES), +8);                          \
             BFIx(gd, ed, 0, 16);
         #define GO(GETFLAGS, NO, YES, F)            \
             READFLAGS(F);                           \

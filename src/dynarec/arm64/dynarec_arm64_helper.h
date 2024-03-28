@@ -1401,43 +1401,43 @@ uintptr_t dynarec64_F30F(dynarec_arm_t* dyn, uintptr_t addr, uintptr_t ip, int n
 #define GOCONDWW(B, T1, T2)                                   \
     case B+0x0:                                             \
         INST_NAME(T1 "O " T2);                              \
-        GOW((cVS),(cVC), X_OF)                               \
+        GOW((cVS), X_OF)                               \
         break;                                              \
     case B+0x1:                                             \
         INST_NAME(T1 "NO " T2);                             \
-        GOW((cVC),(cVS), X_OF)                               \
+        GOW((cVC),X_OF)                               \
         break;                                              \
     case B+0x2:                                             \
         INST_NAME(T1 "C " T2);                              \
-        GOW((cCS),(cCC), X_CF)                               \
+        GOW((cCS), X_CF)                               \
         break;                                              \
     case B+0x3:                                             \
         INST_NAME(T1 "NC " T2);                             \
-        GOW((cCC),(cCS), X_CF)                               \
+        GOW((cCC), X_CF)                               \
         break;                                              \
     case B+0x4:                                             \
         INST_NAME(T1 "Z " T2);                              \
-        GOW((cEQ),(cNE), X_ZF)                               \
+        GOW((cEQ), X_ZF)                               \
         break;                                              \
     case B+0x5:                                             \
         INST_NAME(T1 "NZ " T2);                             \
-        GOW((cNE),(cEQ), X_ZF)                               \
+        GOW((cNE), X_ZF)                               \
         break;                                              \
     case B+0x6:                                             \
         INST_NAME(T1 "BE " T2);                             \
-        GOW((cLS),(cHI), X_CF | X_ZF)                               \
+        GOW((cLS), X_CF | X_ZF)                               \
         break;                                              \
     case B+0x7:                                             \
         INST_NAME(T1 "NBE " T2);                            \
-        GOW((cHI),(cLS), X_CF | X_ZF)                               \
+        GOW((cHI), X_CF | X_ZF)                               \
         break;                                              \
     case B+0x8:                                             \
         INST_NAME(T1 "S " T2);                              \
-        GOW((cMI),(cPL),X_SF)                               \
+        GOW((cMI),X_SF)                               \
         break;                                              \
     case B+0x9:                                             \
         INST_NAME(T1 "NS " T2);                             \
-        GOW((cPL),(cMI),X_SF)                               \
+        GOW((cPL),X_SF)                               \
         break;                                              \
     case B+0xA:                                             \
         INST_NAME(T1 "P " T2);                              \
@@ -1451,46 +1451,46 @@ uintptr_t dynarec64_F30F(dynarec_arm_t* dyn, uintptr_t addr, uintptr_t ip, int n
         break;                                              \
     case B+0xC:                                             \
         INST_NAME(T1 "L " T2);                              \
-        GOW((cLT),(cGE),X_SF|X_OF)                               \
+        GOW((cLT),X_SF|X_OF)                               \
         break;                                              \
     case B+0xD:                                             \
         INST_NAME(T1 "GE " T2);                             \
-        GOW((cGE),(cLT),X_SF|X_OF)                               \
+        GOW((cGE),X_SF|X_OF)                               \
         break;                                              \
     case B+0xE:                                             \
         INST_NAME(T1 "LE " T2);                             \
-        GOW((cLE),(cGT),X_SF|X_OF|X_ZF)                               \
+        GOW((cLE),X_SF|X_OF|X_ZF)                               \
         break;                                              \
     case B+0xF:                                             \
         INST_NAME(T1 "G " T2);                              \
-        GOW((cGT),(cLE),X_SF|X_OF|X_ZF)                               \
+        GOW((cGT),X_SF|X_OF|X_ZF)                               \
         break
-
 #define GOCONDW(B, T1, T2)                                   \
     case B+0x0:                                             \
         INST_NAME(T1 "O " T2);                              \
-        GOW((cVS),(cVC), X_OF)                               \
+        GOW((cVS), X_OF)                               \
         break;                                              \
     case B+0x1:                                             \
         INST_NAME(T1 "NO " T2);                             \
-        GOW((cVC),(cVS), X_OF)                               \
+        GOW((cVC),X_OF)                               \
         break;                                              \
     case B+0x2:                                             \
         INST_NAME(T1 "C " T2);                              \
-        GOW((cCS),(cCC), X_CF)                               \
+        GO( TSTw_mask(xFlags, 0, 0)                         \
+            , cEQ, cNE, X_CF)                               \
         break;                                              \
     case B+0x3:                                             \
         INST_NAME(T1 "NC " T2);                             \
-        GOW((cCC),(cCS), X_CF)                               \
+        GO( TSTw_mask(xFlags, 0, 0)                         \
+            , cNE, cEQ, X_CF)                               \
+        break;                                              \
     case B+0x4:                                             \
         INST_NAME(T1 "Z " T2);                              \
-        GO( TSTw_mask(xFlags, 0b011010, 0)                  \
-            , cEQ, cNE, X_ZF)                               \
+        GOW((cEQ), X_ZF)                               \
         break;                                              \
     case B+0x5:                                             \
         INST_NAME(T1 "NZ " T2);                             \
-        GO( TSTw_mask(xFlags, 0b011010, 0)                  \
-            , cNE, cEQ, X_ZF)                               \
+        GOW((cNE), X_ZF)                               \
         break;                                              \
     case B+0x6:                                             \
         INST_NAME(T1 "BE " T2);                             \
@@ -1506,13 +1506,11 @@ uintptr_t dynarec64_F30F(dynarec_arm_t* dyn, uintptr_t addr, uintptr_t ip, int n
         break;                                              \
     case B+0x8:                                             \
         INST_NAME(T1 "S " T2);                              \
-        GO( TSTw_mask(xFlags, 0b011001, 0)                  \
-            , cEQ, cNE, X_SF)                               \
+        GOW((cMI),X_SF)                               \
         break;                                              \
     case B+0x9:                                             \
         INST_NAME(T1 "NS " T2);                             \
-        GO( TSTw_mask(xFlags, 0b011001, 0)                  \
-            , cNE, cEQ, X_SF)                               \
+        GOW((cPL),X_SF)                               \
         break;                                              \
     case B+0xA:                                             \
         INST_NAME(T1 "P " T2);                              \
@@ -1526,19 +1524,19 @@ uintptr_t dynarec64_F30F(dynarec_arm_t* dyn, uintptr_t addr, uintptr_t ip, int n
         break;                                              \
     case B+0xC:                                             \
         INST_NAME(T1 "L " T2);                              \
-        GOW((cLT),(cGE),X_SF|X_OF)                               \
+        GOW((cLT),X_SF|X_OF)                               \
         break;                                              \
     case B+0xD:                                             \
         INST_NAME(T1 "GE " T2);                             \
-        GOW((cGE),(cLT),X_SF|X_OF)                               \
+        GOW((cGE),X_SF|X_OF)                               \
         break;                                              \
     case B+0xE:                                             \
         INST_NAME(T1 "LE " T2);                             \
-        GOW((cLE),(cGT),X_SF|X_OF|X_ZF)                               \
+        GOW((cLE),X_SF|X_OF|X_ZF)                               \
         break;                                              \
     case B+0xF:                                             \
         INST_NAME(T1 "G " T2);                              \
-        GOW((cGT),(cLE),X_SF|X_OF|X_ZF)                               \
+        GOW((cGT),X_SF|X_OF|X_ZF)                               \
         break
 
 #define GOCOND(B, T1, T2)                                   \

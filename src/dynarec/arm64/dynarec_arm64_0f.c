@@ -955,7 +955,7 @@ uintptr_t dynarec64_0F(dynarec_arm_t* dyn, uintptr_t addr, uintptr_t ip, int nin
             }
             break;
 
-        #define GOW(YES,NO,F)            \
+        #define GOW(YES,F)            \
             READFLAGS(F);                               \
             nextop=F8;                              \
             GETGD;                                  \
@@ -964,7 +964,7 @@ uintptr_t dynarec64_0F(dynarec_arm_t* dyn, uintptr_t addr, uintptr_t ip, int nin
                 CSELxw(gd, ed, gd, YES);            \
             } else { \
                 addr = geted(dyn, addr, ninst, nextop, &ed, x2, &fixedaddress, &unscaled, 0xfff<<(2+rex.w), (1<<(2+rex.w))-1, rex, NULL, 0, 0); \
-                Bcond(NO, +8);                      \
+                Bcond(invCond(YES), +8);                      \
                 LDxw(gd, ed, fixedaddress);         \
                 if(!rex.w) {MOVw_REG(gd, gd);}      \
             }
@@ -1558,7 +1558,7 @@ uintptr_t dynarec64_0F(dynarec_arm_t* dyn, uintptr_t addr, uintptr_t ip, int nin
             }
             break;
 
-        #define GOW(YES, NO, F)   \
+        #define GOW(YES,  F)   \
             READFLAGS(F);                               \
             i32_ = F32S;                                                \
             BARRIER(BARRIER_MAYBE);                                     \
@@ -1567,7 +1567,7 @@ uintptr_t dynarec64_0F(dynarec_arm_t* dyn, uintptr_t addr, uintptr_t ip, int nin
                 CHECK_CACHE()) {                                        \
                 /* out of the block */                                  \
                 i32 = dyn->insts[ninst].epilog-(dyn->native_size);      \
-                Bcond(NO, i32);                                         \
+                Bcond(invCond(YES), i32);                                         \
                 if(dyn->insts[ninst].x64.jmp_insts==-1) {               \
                     if(!(dyn->insts[ninst].x64.barrier&BARRIER_FLOAT))  \
                         fpu_purgecache(dyn, ninst, 1, x1, x2, x3);      \
@@ -1613,7 +1613,7 @@ uintptr_t dynarec64_0F(dynarec_arm_t* dyn, uintptr_t addr, uintptr_t ip, int nin
         #undef GO
         #undef GOW
 
-        #define GOW(YES, NO, F)                \
+        #define GOW(YES,  F)                \
             READFLAGS(F);                               \
             nextop=F8;                                  \
             CSETw(x3, YES);                             \
