@@ -1,10 +1,11 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-//from https://crypto.stanford.edu/pbc/notes/pi/code.html
-// 800 first decimals of PI
+// from https://crypto.stanford.edu/pbc/notes/pi/code.html
+//  800 first decimals of PI
 
-int main() {
+int main()
+{
     int r[2800 + 1];
     int i, k;
     int b, d;

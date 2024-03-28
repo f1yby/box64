@@ -15,10 +15,8 @@ int my_func1(const char* fmt, ...)
     return ret;
 }
 
-int main(int argc, char **argv)
+int main(int argc, char** argv)
 {
     int ret = my_func1("Hello %s World, pi=%g!\n", "x86_64", 3.14159265);
     return 0;
 }
-
-

@@ -10,7 +10,8 @@ static pthread_cond_t thread_state_cond;
 static pthread_cond_t* thread_state_cond_ptr = NULL;
 static int thread_state = 0; // Sync
 
-void thread_cleanup(void* args) {
+void thread_cleanup(void* args)
+{
     pthread_mutex_lock(mutex_ptr);
     printf("Thread: thread_state = 2.\n");
     thread_state = 2;
@@ -18,7 +19,8 @@ void thread_cleanup(void* args) {
     pthread_mutex_unlock(mutex_ptr);
 }
 
-static void thread_f(void) {
+static void thread_f(void)
+{
     int ret = -1;
     pthread_mutex_lock(mutex_ptr);
     printf("Thread: thread_state = 1.\n");
@@ -30,7 +32,8 @@ static void thread_f(void) {
     }
 }
 
-static void* thread_main(void* args) {
+static void* thread_main(void* args)
+{
     pthread_cleanup_push(&thread_cleanup, NULL);
     thread_f();
     // This should never be executed
@@ -38,7 +41,8 @@ static void* thread_main(void* args) {
     return NULL;
 }
 
-int main(void) {
+int main(void)
+{
     int ret = 0;
     pthread_t thread;
     pthread_attr_t thread_attributes;
@@ -71,13 +75,13 @@ int main(void) {
     printf("Main thread: thread_state == 1.\n");
     pthread_mutex_unlock(mutex_ptr);
 
-    #ifdef __ANDROID__
-    if (pthread_kill(thread,0) != 0)
+#ifdef __ANDROID__
+    if (pthread_kill(thread, 0) != 0)
         goto error;
-    #else
+#else
     if (pthread_cancel(thread) != 0)
         goto error;
-    #endif
+#endif
 
     // Wait for thread to execute the cleanup function
     pthread_mutex_lock(mutex_ptr);

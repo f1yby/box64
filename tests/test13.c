@@ -4,8 +4,11 @@
 
 static ucontext_t uctx_main, uctx_func1, uctx_func2;
 
-#define handle_error(msg) \
-    do { perror(msg); exit(EXIT_FAILURE); } while (0)
+#define handle_error(msg)   \
+    do {                    \
+        perror(msg);        \
+        exit(EXIT_FAILURE); \
+    } while (0)
 
 static void func1(void)
 {
@@ -25,7 +28,7 @@ static void func2(int a, int b)
     printf("func2: returning\n");
 }
 
-int main(int argc, char *argv[])
+int main(int argc, char* argv[])
 {
     char func1_stack[16384];
     char func2_stack[16384];

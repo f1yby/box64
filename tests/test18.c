@@ -10,23 +10,29 @@ typedef union {
     v2di m;
 } mm128i;
 
-int need_stop(mm128i *var) {
+int need_stop(mm128i* var)
+{
     if (var->v[0] >= 0xEEEEFFFFFFFFEEEFULL) {
-        if (var->v[1] == 0xFFFFFFFFFFFFFFFFULL) return 1;
+        if (var->v[1] == 0xFFFFFFFFFFFFFFFFULL)
+            return 1;
         else {
             var->v[0] += 0x1111000000001111ULL;
             ++var->v[1];
         }
-    } else var->v[0] += 0x1111000000001111ULL;
-    if (var->v[1] >= 0xF000000000000000ULL) return 1;
-    else var->v[1] += 0x1000000000000000ULL;
+    } else
+        var->v[0] += 0x1111000000001111ULL;
+    if (var->v[1] >= 0xF000000000000000ULL)
+        return 1;
+    else
+        var->v[1] += 0x1000000000000000ULL;
     return 0;
 }
 
-int main() {
-    mm128i x = { .v = {0, 0} };
+int main()
+{
+    mm128i x = { .v = { 0, 0 } };
     do {
-        mm128i y = { .v = {0, 0} };
+        mm128i y = { .v = { 0, 0 } };
         do {
             mm128i enc = { .m = _mm_aesenc_si128(x.m, y.m) };
             mm128i enclast = { .m = _mm_aesenclast_si128(x.m, y.m) };
