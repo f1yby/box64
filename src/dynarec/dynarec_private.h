@@ -16,6 +16,10 @@
 #define X_ALL  ((1 << 6) - 1)
 #define X_PEND (0x80)
 
+#define T_UNKNOWN (0)
+#define T_DIRTY   (2)
+#define T_CLEAN   (1)
+
 // all state flags
 #define SF_UNKNOWN        0
 #define SF_SET            1
@@ -42,6 +46,7 @@ typedef struct instruction_x64_s {
     uint8_t gen_flags;    // calculated
     uint8_t need_before;  // calculated
     uint8_t need_after;   // calculated
+    uint8_t taint;
 } instruction_x64_t;
 
 void printf_x64_instruction(zydis_dec_t* dec, instruction_x64_t* inst, const char* name);

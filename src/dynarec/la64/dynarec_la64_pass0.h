@@ -14,6 +14,10 @@
     dyn->insts[ninst].x64.state_flags = B; \
     dyn->f.pending = (B) & SF_SET_PENDING; \
     dyn->f.dfnone = ((B) & SF_SET) ? 1 : 0;
+
+#define SETTAINT(A) \
+    dyn->insts[ninst].x64.taint = A;
+
 #define EMIT(A) dyn->native_size += 4
 #define JUMP(A, C)                 \
     add_jump(dyn, ninst);          \
