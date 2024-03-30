@@ -47,6 +47,7 @@ typedef struct instruction_x64_s {
     uint8_t need_before;  // calculated
     uint8_t need_after;   // calculated
     uint8_t taint;
+    uint8_t taint_touched;
 } instruction_x64_t;
 
 void printf_x64_instruction(zydis_dec_t* dec, instruction_x64_t* inst, const char* name);
