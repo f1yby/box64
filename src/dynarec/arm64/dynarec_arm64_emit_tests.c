@@ -24,6 +24,7 @@
 // emit CMP32 instruction, from cmp s1, s2, using s3 and s4 as scratch
 void emit_cmp32(dynarec_arm_t* dyn, int ninst, rex_t rex, int s1, int s2, int s3, int s4, int s5)
 {
+    SETTAINT(T_CLEAN);
     MAYUSE(s1); MAYUSE(s2);
     IFX_PENDOR0 {
         STRxw_U12(s1, xEmu, offsetof(x64emu_t, op1));
@@ -40,31 +41,33 @@ void emit_cmp32(dynarec_arm_t* dyn, int ninst, rex_t rex, int s1, int s2, int s3
     IFX_PENDOR0 {
         STRxw_U12(s5, xEmu, offsetof(x64emu_t, res));
     }
-    IFX(X_AF) {
-        ANDxw_REG(s3, s3, s5);   // s3 = (~op1 | op2) & res
-        ORRxw_REG(s3, s3, s4);   // s3 = (~op1 & op2) | ((~op1 | op2) & res)
-        LSRxw(s4, s3, 3);
-        BFIx(xFlags, s4, F_AF, 1);    // AF: bc & 0x08
-    }
-    IFX(X_ZF) {
-        CSETw(s4, cEQ);
-        BFIw(xFlags, s4, F_ZF, 1);
-    }
-    IFX(X_CF) {
-        // inverted carry
-        CSETw(s4, cCC);
-        BFIw(xFlags, s4, F_CF, 1);
-    }
-    IFX(X_OF) {
-        CSETw(s4, cVS);
-        BFIw(xFlags, s4, F_OF, 1);
-    }
-    IFX(X_SF) {
-        LSRxw(s3, s5, (rex.w)?63:31);
-        BFIw(xFlags, s3, F_SF, 1);
-    }
-    IFX(X_PF) {
-        emit_pf(dyn, ninst, s5, s3, s4);
+    IFT (T_DIRTY) {
+        IFX (X_AF) {
+            ANDxw_REG(s3, s3, s5); // s3 = (~op1 | op2) & res
+            ORRxw_REG(s3, s3, s4); // s3 = (~op1 & op2) | ((~op1 | op2) & res)
+            LSRxw(s4, s3, 3);
+            BFIx(xFlags, s4, F_AF, 1); // AF: bc & 0x08
+        }
+        IFX (X_ZF) {
+            CSETw(s4, cEQ);
+            BFIw(xFlags, s4, F_ZF, 1);
+        }
+        IFX (X_CF) {
+            // inverted carry
+            CSETw(s4, cCC);
+            BFIw(xFlags, s4, F_CF, 1);
+        }
+        IFX (X_OF) {
+            CSETw(s4, cVS);
+            BFIw(xFlags, s4, F_OF, 1);
+        }
+        IFX (X_SF) {
+            LSRxw(s3, s5, (rex.w) ? 63 : 31);
+            BFIw(xFlags, s3, F_SF, 1);
+        }
+        IFX (X_PF) {
+            emit_pf(dyn, ninst, s5, s3, s4);
+        }
     }
 }
 
@@ -230,6 +233,7 @@ void emit_cmp8_0(dynarec_arm_t* dyn, int ninst, int s1, int s3, int s4)
 // emit TEST32 instruction, from test s1, s2, using s3, s4 and s5 as scratch
 void emit_test32(dynarec_arm_t* dyn, int ninst, rex_t rex, int s1, int s2, int s3, int s4, int s5)
 {
+    SETTAINT(T_CLEAN);
     MAYUSE(s1); MAYUSE(s2); MAYUSE(s3); MAYUSE(s4);
     IFX_PENDOR0 {
         SET_DF(s3, rex.w?d_tst64:d_tst32);
@@ -244,17 +248,19 @@ void emit_test32(dynarec_arm_t* dyn, int ninst, rex_t rex, int s1, int s2, int s
     IFX_PENDOR0 {
         STRxw_U12(s3, xEmu, offsetof(x64emu_t, res));
     }
-    IFX(X_ZF) {
-        CSETw(s4, cEQ);
-        BFIw(xFlags, s4, F_ZF, 1);
-    }
-    IFX(X_SF) {
-        LSRxw(s4, s3, rex.w?63:31);
-        BFIw(xFlags, s4, F_SF, 1);
-    }
-    // PF: (((emu->x64emu_parity_tab[(res) / 32] >> ((res) % 32)) & 1) == 0)
-    IFX(X_PF) {
-        emit_pf(dyn, ninst, s3, s4, s5);
+    IFT (T_DIRTY) {
+        IFX (X_ZF) {
+            CSETw(s4, cEQ);
+            BFIw(xFlags, s4, F_ZF, 1);
+        }
+        IFX (X_SF) {
+            LSRxw(s4, s3, rex.w ? 63 : 31);
+            BFIw(xFlags, s4, F_SF, 1);
+        }
+        // PF: (((emu->x64emu_parity_tab[(res) / 32] >> ((res) % 32)) & 1) == 0)
+        IFX (X_PF) {
+            emit_pf(dyn, ninst, s3, s4, s5);
+        }
     }
 }
 

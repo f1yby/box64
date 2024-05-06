@@ -995,31 +995,55 @@ uintptr_t dynarec64_00(dynarec_arm_t* dyn, uintptr_t addr, uintptr_t ip, int nin
             *ok = 0;
             break;
 
-        #define GO(GETFLAGS, NO, YES, F)                                \
-            READFLAGS(F);                                               \
-            i8 = F8S;                                                   \
-            BARRIER(BARRIER_MAYBE);                                     \
-            JUMP(addr+i8, 1);                                           \
-            GETFLAGS;                                                   \
-            if(dyn->insts[ninst].x64.jmp_insts==-1 ||                   \
-                CHECK_CACHE()) {                                        \
-                /* out of the block */                                  \
-                i32 = dyn->insts[ninst].epilog-(dyn->native_size);      \
-                Bcond(NO, i32);                                         \
-                if(dyn->insts[ninst].x64.jmp_insts==-1) {               \
-                    if(!(dyn->insts[ninst].x64.barrier&BARRIER_FLOAT))  \
-                        fpu_purgecache(dyn, ninst, 1, x1, x2, x3);      \
-                    jump_to_next(dyn, addr+i8, 0, ninst, rex.is32bits); \
-                } else {                                                \
-                    CacheTransform(dyn, ninst, cacheupd, x1, x2, x3);   \
-                    i32 = dyn->insts[dyn->insts[ninst].x64.jmp_insts].address-(dyn->native_size);\
-                    B(i32);                                             \
-                }                                                       \
-            } else {                                                    \
-                /* inside the block */                                  \
-                i32 = dyn->insts[dyn->insts[ninst].x64.jmp_insts].address-(dyn->native_size);    \
-                Bcond(YES, i32);                                        \
-            }
+#define GO(GETFLAGS, NO, YES, F, COND)                                                          \
+    IFT (T_CLEAN) {                                                                             \
+        READFLAGS(F);                                                                           \
+        i8 = F8S;                                                                               \
+        BARRIER(BARRIER_MAYBE);                                                                 \
+        JUMP(addr + i8, 1);                                                                     \
+        if (dyn->insts[ninst].x64.jmp_insts == -1 || CHECK_CACHE()) {                           \
+            /* out of the block */                                                              \
+            i32 = dyn->insts[ninst].epilog - (dyn->native_size);                                \
+            Bcond(invCond(COND), i32);                                                          \
+            if (dyn->insts[ninst].x64.jmp_insts == -1) {                                        \
+                if (!(dyn->insts[ninst].x64.barrier & BARRIER_FLOAT))                           \
+                    fpu_purgecache(dyn, ninst, 1, x1, x2, x3);                                  \
+                jump_to_next(dyn, addr + i8, 0, ninst, rex.is32bits);                           \
+            } else {                                                                            \
+                CacheTransform(dyn, ninst, cacheupd, x1, x2, x3);                               \
+                i32 = dyn->insts[dyn->insts[ninst].x64.jmp_insts].address - (dyn->native_size); \
+                B(i32);                                                                         \
+            }                                                                                   \
+        } else {                                                                                \
+            /* inside the block */                                                              \
+            i32 = dyn->insts[dyn->insts[ninst].x64.jmp_insts].address - (dyn->native_size);     \
+            Bcond(COND, i32);                                                                   \
+        }                                                                                       \
+    } else {                                                                                    \
+        READFLAGS(F);                                                                           \
+        i8 = F8S;                                                                               \
+        BARRIER(BARRIER_MAYBE);                                                                 \
+        JUMP(addr + i8, 1);                                                                     \
+        GETFLAGS;                                                                               \
+        if (dyn->insts[ninst].x64.jmp_insts == -1 || CHECK_CACHE()) {                           \
+            /* out of the block */                                                              \
+            i32 = dyn->insts[ninst].epilog - (dyn->native_size);                                \
+            Bcond(NO, i32);                                                                     \
+            if (dyn->insts[ninst].x64.jmp_insts == -1) {                                        \
+                if (!(dyn->insts[ninst].x64.barrier & BARRIER_FLOAT))                           \
+                    fpu_purgecache(dyn, ninst, 1, x1, x2, x3);                                  \
+                jump_to_next(dyn, addr + i8, 0, ninst, rex.is32bits);                           \
+            } else {                                                                            \
+                CacheTransform(dyn, ninst, cacheupd, x1, x2, x3);                               \
+                i32 = dyn->insts[dyn->insts[ninst].x64.jmp_insts].address - (dyn->native_size); \
+                B(i32);                                                                         \
+            }                                                                                   \
+        } else {                                                                                \
+            /* inside the block */                                                              \
+            i32 = dyn->insts[dyn->insts[ninst].x64.jmp_insts].address - (dyn->native_size);     \
+            Bcond(YES, i32);                                                                    \
+        }                                                                                       \
+    }
 
         GOCOND(0x70, "J", "ib");
 

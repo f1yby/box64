@@ -392,6 +392,52 @@ static int updateNeed(dynarec_native_t* dyn, int ninst, uint8_t need) {
     return ninst;
 }
 
+static void updateTaint(dynarec_native_t* dyn, int cur_index, uint8_t taint)
+{
+    while (cur_index < dyn->size) {
+        instruction_arm64_t* cur_inst = &dyn->insts[cur_index];
+        instruction_x64_t* cur_inst_x64 = &cur_inst->x64;
+        uint8_t* cur_taint = &cur_inst_x64->taint;
+        uint8_t* cur_taint_touched = &cur_inst_x64->taint_touched;
+        int changed = 0;
+        if ((cur_inst_x64->gen_flags & (X_CF | X_PF | X_AF))
+            && cur_inst_x64->taint != T_DIRTY) {
+            *cur_taint = T_DIRTY;
+            changed = 1;
+        }
+
+        if (*cur_taint == T_DIRTY) {
+            taint = T_DIRTY;
+        } else if (*cur_taint == T_CLEAN) {
+            if (taint == T_UNKNOWN) {
+                taint = T_CLEAN;
+            }
+        }
+        if (*cur_taint_touched &&               //
+            (changed || *cur_taint == taint)) { // taint touched and no chang of tanity, done
+            dynarec_log(LOG_DEBUG, "TAINT(%d/%d): [%d, %d] unchanged, skip\n", cur_index, dyn->size, *cur_taint, *cur_taint_touched);
+            return;
+        }
+        dynarec_log(LOG_DEBUG, "TAINT(%d/%d): [%d, %d] -> [%d, %d]\n", cur_index, dyn->size, *cur_taint, *cur_taint_touched, taint, 1);
+        *cur_taint_touched = 1;
+        *cur_taint = taint;
+        if (cur_inst_x64->jmp_insts > 0) {
+            if (cur_inst_x64->jmp_cond) {
+                // cjmp
+                updateTaint(dyn, cur_inst_x64->jmp_insts, taint);
+                ++cur_index;
+            } else {
+                // jmp
+                cur_index = cur_inst_x64->jmp_insts;
+            }
+        } else {
+            // other
+            ++cur_index;
+        }
+    }
+}
+
+
 void* current_helper = NULL;
 static int static_jmps[MAX_INSTS+2];
 static uintptr_t static_next[MAX_INSTS+2];
@@ -563,6 +609,7 @@ void* FillBlock64(dynablock_t* block, uintptr_t addr, int alternate, int is32bit
     int pos = helper.size;
     while (pos>=0)
         pos = updateNeed(&helper, pos, 0);
+        updateTaint(&helper, 0, T_UNKNOWN);
     // remove fpu stuff on non-executed code
     for(int i=1; i<helper.size-1; ++i)
         if(!helper.insts[i].pred_sz) {

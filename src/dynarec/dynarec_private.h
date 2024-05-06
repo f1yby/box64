@@ -25,6 +25,10 @@
 #define SF_SUBSET   (SF_SUB|SF_SET)
 #define SF_SUBSET_PENDING   (SF_SUBSET|SF_PENDING)
 
+#define T_UNKNOWN (0)
+#define T_CLEAN   (1)
+#define T_DIRTY   (2)
+
 typedef struct instruction_x64_s {
     uintptr_t   addr;       //address of the instruction
     int32_t     size;       // size of the instruction
@@ -42,6 +46,8 @@ typedef struct instruction_x64_s {
     uint8_t     gen_flags;  // calculated
     uint8_t     need_before;// calculated
     uint8_t     need_after; // calculated
+    uint8_t taint;
+    uint8_t taint_touched;
 } instruction_x64_t;
 
 void printf_x64_instruction(zydis_dec_t* dec, instruction_x64_t* inst, const char* name);
